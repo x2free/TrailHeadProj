@@ -1,21 +1,20 @@
-<aura:component >
-    
-    <!-- attributes -->
-    <aura:attribute name="mapMarkers" type="Object"/>
-    <aura:attribute name="zoomLevel" type="Integer" />    
-    <aura:attribute name="width"  type="String" default="100%" />
-    <aura:attribute name="height" type="String" default="80px" />
+<aura:component implements="flexipage:availableForAllPageTypes" access="global">
+    <aura:attribute name="width" type="String" default="100%" />
+    <aura:attribute name="height" type="String" default="200px" />
+    <aura:attribute name="location" type="SObject" />
+    <aura:attribute name="jsLoaded" type="boolean" default="false" />
 
-    <!-- Your handler goes here-->    
-    
-    <div style="{!'width: ' + v.width + '; height: ' + v.height}">
-        <lightning:card title="Current Boat Location" class="slds-m-top_none">
-            <aura:renderIf isTrue="{!not(empty(v.mapMarkers))}">
-                <!-- the map component goes here -->    
-            </aura:renderIf>
-            <aura:renderIf isTrue="{!empty(v.mapMarkers)}">
-                <div style="width:100%; height:100%" class="slds-align_absolute-center">Please make a selection</div>
-            </aura:renderIf>
+    <ltng:require styles="{!$Resource.Leaflet + '/leaflet.css'}" scripts="{!$Resource.Leaflet + '/leaflet-src.js'}"
+        afterScriptsLoaded="{!c.jsLoaded}" />
+
+    <aura:handler event="c:PlotMapMarker" action="{!c.onPlotMapMarker}" />
+    <div aura:id="map">
+        <lightning:card title="Current Boat Location">
+            <div style="{!'width: ' + v.width + '; height: ' + v.height}">
+                <div class="slds-align_absolute-center">
+                    Please make a selection
+                </div>
+            </div>
         </lightning:card>
     </div>
 </aura:component>

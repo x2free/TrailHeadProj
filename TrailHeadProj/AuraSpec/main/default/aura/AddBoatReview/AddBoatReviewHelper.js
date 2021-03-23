@@ -1,25 +1,60 @@
 ({
-	onInit : function(component, event) {
-        var boat = component.get("v.boat");
-        console.log("AddBoatReviewHelper.onInit-boat="+ JSON.stringify(boat));
-        
+    onInit: function(component) {
         component.find("service").getNewRecord(
-        	"BoatReview__c",// sObject type(objectAPIName)
-        	null,			// recordTypeId
-        	false,			// skip cache?
-            $A.getCallback(function() {
-                var rec = component.get("v.boatReview");
-                var error = component.get("v.recordError");
-                var boat = component.get("v.boat");
-                
-                if(error || (rec === null)){
-                    console.log("AddBoatReviewHelper.onInit-Error initializing record templage:"+error);
-                    return;
+            "BoatReview__c", // sObject type (entityAPIName)
+            null,            // recordTypeId
+            false,           // skip cache?
+            $A.getCallback( function() {
+                var rec=component.get("v.boatReviewRec");
+                var error=component.get("v.recordError");
+                if(error || (rec === null)) {
+                    console.log("Error initializing record template: " + error);
                 }
-                else {
-                    console.log("AddBoatReviewHelper.onInit-Record template initialized: " + rec.sObjectType);
+                else { 
+                    component.set("v.boatReview.Boat__c", component.get("v.boat.Id"));
+                    console.log("Record template initialized: " + rec.apiName);
                 }
             })
         );
+    },
+	onSave : function(component, event, helper) {        
+        component.set("v.boatReview.Boat__c", component.get("v.boat").Id);
+        
+        component.find("service").saveRecord(function(saveResult){
+            if(saveResult.state === "SUCCESS" || saveResult.state === "DRAFT")
+            {
+                var resultsToast = $A.get("e.force:showToast");
+                if(resultsToast){
+                    resultsToast.setParams({
+                        "title":"Submitted",
+                        "message":"The review was saved."
+                    });
+                    resultsToast.fire();
+                } else {
+                    alert("The review was saved.");
+                }
+            }
+             
+            var boatReviewAddedEvent = component.getEvent("boatReviewAdded");
+            boatReviewAddedEvent.fire();
+        });
+	},
+    onRecordUpdated : function(component, event, helper) {
+		var eventParams=event.getParams();
+        if(eventParams.changeType==="CHANGED"){
+            var changedFields = eventParams.changedFields;
+            var saveResultsToast = $A.get("e.force:showToast");
+            if(saveResultsToast != 'undefined')
+            {
+                saveResutlsToast.setParams({
+                    "title":"Saved",
+                    "message":"Boat Review Saved"
+                });
+                saveResultsToast.fire();
+            }
+            else {
+                alert("Boat Review Saved");
+            }
+        }
 	}
 })
