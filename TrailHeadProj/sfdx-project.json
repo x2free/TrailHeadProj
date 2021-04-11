@@ -6,6 +6,10 @@
     },
     {
       "path": "AuraSpec",
+      "default": false
+    },
+    {
+      "path": "AdvApexSpec",
       "default": true
     }
   ],
