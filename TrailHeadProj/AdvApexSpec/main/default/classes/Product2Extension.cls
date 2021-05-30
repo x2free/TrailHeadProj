@@ -1,10 +1,8 @@
 public class Product2Extension {
-    public List<Product2> productsToInsert {get;set;}
-    public List<ProductWrapper> lstProdWrapper {get; set;}
+    public List<ProductWrapper> productsToInsert {get;set;}
 
-    public Product2Extension(){
-        productsToInsert = new List<Product2>();
-        lstProdWrapper = new List<ProductWrapper>();
+    public Product2Extension(ApexPages.StandardController stdController){
+        productsToInsert = new List<ProductWrapper>();
 
         addRows();
     }
@@ -16,7 +14,7 @@ public class Product2Extension {
             wrapper.productRecord = new Product2();
             wrapper.pricebookEntryRecord = new PricebookEntry();
 
-            lstProdWrapper.add(wrapper);
+            productsToInsert.add(wrapper);
         }
     }
 
@@ -40,13 +38,23 @@ public class Product2Extension {
             List<Product2> lstProd = new List<Product2>();
             List<PricebookEntry> lstPBE = new List<PricebookEntry>();
 
-            for (ProductWrapper wrapper : lstProdWrapper) {
-                lstProd.add(wrapper.productRecord);
+            for (ProductWrapper wrapper : productsToInsert) {
+                // if (String.isNotBlank(wrapper.productRecord.Name)
+                //     && String.isNotBlank(wrapper.productRecord.Family)
+                //     && wrapper.pricebookEntryRecord.UnitPrice != null
+                //     && wrapper.productRecord.Initial_Inventory__c != null
+                //     && wrapper.productRecord.IsActive) {
+                    lstProd.add(wrapper.productRecord);
+                // }
             }
 
             insert lstProd;
 
-            for (ProductWrapper wrapper : lstProdWrapper) {
+            for (ProductWrapper wrapper : productsToInsert) {
+                if (String.isBlank(wrapper.productRecord.Id)) {
+                    continue;
+                }
+                
                 wrapper.pricebookEntryRecord.Product2Id = wrapper.productRecord.Id;
                 wrapper.pricebookEntryRecord.Pricebook2Id = Constants.STANDARD_PRICEBOOK_ID;
                 wrapper.pricebookEntryRecord.IsActive = true;
@@ -74,7 +82,7 @@ public class Product2Extension {
 
             //If successful clear the list and display an informational message
             apexPages.addMessage(new ApexPages.message(ApexPages.Severity.INFO, lstProd.size()+' Inserted'));
-            // productsToInsert.clear();   //Do not remove
+            productsToInsert.clear();   //Do not remove
             addRows();  //Do not remove
         } catch (Exception e){
             Database.rollback(sp);
@@ -86,5 +94,10 @@ public class Product2Extension {
     public without sharing class ProductWrapper{
         public Product2 productRecord {get; set;}
         public PricebookEntry pricebookEntryRecord {get; set;}
+
+        public ProductWrapper() {
+            productRecord = new Product2(Initial_Inventory__c = 0, Name = 'Test Product', IsActive = true);
+            pricebookEntryRecord = new PricebookEntry(Unitprice = 0.0);
+        }
     }
 }

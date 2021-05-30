@@ -1,24 +1,29 @@
-<apex:page controller="Product2Extension" >
+<apex:page standardController="Product2" extensions="Product2Extension">
     <apex:sectionHeader title="New Product" subtitle="Add Inventory" />
     <apex:pageMessages id="pageMessages" />
     <apex:form id="form" >
         <apex:actionRegion >
             <apex:pageBlock title="Existing Inventory" >
-                Chart goes here
+                <apex:chart height="100" width="500" data="{!Inventory}" rendered="true">
+                    <apex:axis type="Category" position="bottom" fields="name"></apex:axis>
+                    <apex:axis type="Numeric" position="left" fields="val"></apex:axis>
+                    <!-- <apex:lineSeries axis="left" fill="true" xField="name" yField="val" markerType="cross" markerSize="4" markerFill="#FF0000"/> -->
+                    <apex:barSeries orientation="horizontal" axis="left" xField="val" yField="name"/>
+                </apex:chart>
             </apex:pageBlock>
             <apex:pageBlock title="New Products" >
                 <apex:pageBlockButtons location="top">
-                    <apex:commandButton action="{!save}" value="Save" />
+                    <apex:commandButton action="{!save}" value="Save" reRender="inventoryChart" />
                 </apex:pageBlockButtons>
                 <apex:pageBlockButtons location="bottom">
-                    <apex:commandButton action="{!addRows}" value="Add" />
+                    <apex:commandButton action="{!addRows}" value="Add" reRender="pageMessages,orderItemTable" />
                 </apex:pageBlockButtons>
 
-                <apex:pageBlockTable value="{!lstProdWrapper}" var="p" id="orderItemTable" >
+                <apex:pageBlockTable value="{!productsToInsert}" var="p" id="orderItemTable" >
                     <apex:column headerValue="{!$ObjectType.Product2.Fields.Name.Label}" >
                         <apex:inputText value="{!p.productRecord.Name}" />
                     </apex:column>
-                    <apex:column headerValue="Family" >
+                    <apex:column headerValue="{!$ObjectType.Product2.Fields.Family.Label}" >
                         <apex:selectList value="{!p.productRecord.Family}" size="1" multiselect="false" >
                             <apex:selectOptions value="{!FamilyOptions}"/>  
                         </apex:selectList>
