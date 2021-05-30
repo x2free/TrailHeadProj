@@ -1,103 +1,96 @@
-public class Product2Extension {
-    public List<ProductWrapper> productsToInsert {get;set;}
+public class Product2Extension{
+	public List<ProductWrapper> productsToInsert{ get; set; }
 
-    public Product2Extension(ApexPages.StandardController stdController){
-        productsToInsert = new List<ProductWrapper>();
+	public Product2Extension(ApexPages.StandardController controller){
+		productsToInsert = new List<ProductWrapper>();
+		AddRows();
+	}
 
-        addRows();
-    }
+	public void AddRows(){
+		for (Integer i = 0; i < Constants.DEFAULT_ROWS; i + +){
+			productsToInsert.add(new ProductWrapper());
+		}
+	}
 
-    public void AddRows(){
-        for ( Integer i = 0; i < Constants.DEFAULT_ROWS; i++ ){
-            // productsToInsert.add( new Product2() );
-            ProductWrapper wrapper = new ProductWrapper();
-            wrapper.productRecord = new Product2();
-            wrapper.pricebookEntryRecord = new PricebookEntry();
+	public List<ChartHelper.ChartData> GetInventory(){
+		return ChartHelper.GetInventory();
+	}
 
-            productsToInsert.add(wrapper);
-        }
-    }
+	public PageReference Save(){
+		SavePoint sp = Database.setSavepoint();
 
-    public List<ChartHelper.ChartData> GetInventory(){
-        return ChartHelper.GetInventory();
-    }
+		try{
+			List<Product2> prodToInsert = new List<Product2>();
+			List<PriceBookEntry> pbeToInsert = new List<PriceBookEntry>();
+			List<ProductWrapper> filteredProductWrappers = new List<ProductWrapper>();
 
-    public List<SelectOption> GetFamilyOptions(){
-        List<Selectoption> lstFamily = new List<Selectoption>();
-        lstFamily.add(new SelectOption('--', Constants.SELECT_ONE));
-        for (Schema.PicklistEntry entry : Constants.PRODUCT_FAMILY) {
-            lstFamily.add(new SelectOption(entry.value, entry.label));
-        }
+			for (ProductWrapper pwLoopVar : productsToInsert){
+				filteredProductWrappers.add(pwLoopVar);
 
-        return lstFamily;
-    }
+				/*if (!String.isBlank(pwLoopVar.productRecord.Name) &&
+				 !String.isBlank(pwLoopVar.productRecord.Family) &&
+				 pwLoopVar.productRecord.Family != Constants.SELECT_ONE &&
+				 pwLoopVar.productRecord.isActive &&
+				 pwLoopVar.pricebookEntryRecord.UnitPrice != null &&
+				 pwLoopVar.productRecord.Initial_Inventory__c != null &&
+				 pwLoopVar.productRecord.Initial_Inventory__c != 0 &&
+				 pwLoopVar.pricebookEntryRecord.UnitPrice != 0 ) {
 
-    public PageReference Save(){
-        Savepoint sp = Database.SetSavePoint();
-        try {
-            List<Product2> lstProd = new List<Product2>();
-            List<PricebookEntry> lstPBE = new List<PricebookEntry>();
+				 filteredProductWrappers.add(pwLoopVar);
+				 }*/
+			}
 
-            for (ProductWrapper wrapper : productsToInsert) {
-                // if (String.isNotBlank(wrapper.productRecord.Name)
-                //     && String.isNotBlank(wrapper.productRecord.Family)
-                //     && wrapper.pricebookEntryRecord.UnitPrice != null
-                //     && wrapper.productRecord.Initial_Inventory__c != null
-                //     && wrapper.productRecord.IsActive) {
-                    lstProd.add(wrapper.productRecord);
-                // }
-            }
+			for (ProductWrapper pwLoopVarNew : filteredProductWrappers){
+				prodToInsert.add(pwLoopVarNew.productRecord);
+			}
+			Database.SaveResult[] productSaveResults = Database.INSERT(prodToInsert, false);
 
-            insert lstProd;
+			for (Integer i = 0; i < productSaveResults.size(); i++){
+				if (productSaveResults[i].isSuccess()){
+					PriceBookEntry pbe = filteredProductWrappers[i].pricebookEntryRecord;
+					pbe.Product2Id = productSaveResults[i].getId();
+					pbe.IsActive = true;
+					pbe.Pricebook2Id = Constants.STANDARD_PRICEBOOK_ID;
+					pbeToInsert.add(pbe);
+				}
+			}
+			Database.SaveResult[] pbeSaveResults = Database.INSERT(pbeToInsert, false);
 
-            for (ProductWrapper wrapper : productsToInsert) {
-                if (String.isBlank(wrapper.productRecord.Id)) {
-                    continue;
-                }
-                
-                wrapper.pricebookEntryRecord.Product2Id = wrapper.productRecord.Id;
-                wrapper.pricebookEntryRecord.Pricebook2Id = Constants.STANDARD_PRICEBOOK_ID;
-                wrapper.pricebookEntryRecord.IsActive = true;
+			//If successful clear the list and display an informational message
+			apexPages.addMessage(new ApexPages.message(ApexPages.Severity.INFO, pbeToInsert.size()+' Records Inserted'));
 
-                lstPBE.add(wrapper.pricebookEntryRecord);
-            }
+			productsToInsert.clear();   //Do not remove
+			AddRows();  //Do not remove
 
-            insert lstPBE;
+		} catch (Exception e){
+			System.debug('Exception occured:' + e.getMessage());
+			Database.rollback(sp);
+			apexPages.addMessage(new ApexPages.message(ApexPages.Severity.ERROR, Constants.ERROR_MESSAGE));
+		}
+		return null;
+	}
 
-            // insert productsToInsert;
+	//method to be used by the Family picklist on the VF page
+	public List<SelectOption> GetFamilyOptions(){
+		List<SelectOption> vfPicklistOptions = new List<SelectOption>();
 
-            // // Map<Id+price, PricebookEntry> mapProdId2PBE = new Map<Id, PricebookEntry>();
-            // List<PricebookEntry> lstPBE = new List<PricebookEntry>();
-            // for (Product2 prod : productsToInsert) {
-            //     lstPBE.add(new PricebookEntry(
-            //         IsActive = true,
-            //         // UnitPrice = prod.
-            //         Product2Id = prod.Id,
-            //         Pricebook2Id = Constants.STANDARD_PRICEBOOK_ID,
-            //         UseStandardPrice = true
-            //     ));
-            // }
+		//Set first option value and label from the Constants class which fetches from Custom Label
+		vfPicklistOptions.add(new SelectOption(Constants.SELECT_ONE, Constants.SELECT_ONE));
 
-            // insert lstPBE;
+		//Add rest options from the Family picklist by fetching it through Constants class
+		for (PickListEntry eachPicklistVal : Constants.PRODUCT_FAMILY)
+			vfPicklistOptions.add(new SelectOption(eachPicklistVal.getValue(), eachPicklistVal.getLabel()));
+		return vfPicklistOptions;
+	}
 
-            //If successful clear the list and display an informational message
-            apexPages.addMessage(new ApexPages.message(ApexPages.Severity.INFO, lstProd.size()+' Inserted'));
-            productsToInsert.clear();   //Do not remove
-            addRows();  //Do not remove
-        } catch (Exception e){
-            Database.rollback(sp);
-            apexPages.addMessage(new ApexPages.message(ApexPages.Severity.ERROR, Constants.ERROR_MESSAGE));
-        }
-        return null;
-    }
+	public class ProductWrapper{
+		public Product2 productRecord{ get; set; }
 
-    public without sharing class ProductWrapper{
-        public Product2 productRecord {get; set;}
-        public PricebookEntry pricebookEntryRecord {get; set;}
+		public PriceBookEntry pricebookEntryRecord{ get; set; }
 
-        public ProductWrapper() {
-            productRecord = new Product2(Initial_Inventory__c = 0, Name = 'Test Product', IsActive = true);
-            pricebookEntryRecord = new PricebookEntry(Unitprice = 0.0);
-        }
-    }
+		public ProductWrapper(){
+			productRecord = new Product2();
+			pricebookEntryRecord = new PricebookEntry();
+		}
+	}
 }

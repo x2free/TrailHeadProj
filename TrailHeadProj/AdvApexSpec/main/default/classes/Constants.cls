@@ -7,5 +7,5 @@ public with sharing class Constants {
     public final static String ACTIVATED_ORDER_STATUS = 'Activated';
     public final static String INVENTORY_ANNOUNCEMENTS = 'Inventory Announcements';
     public final static String ERROR_MESSAGE = 'An error has occurred, please take a screenshot with the URL and send it to IT.';
-    public final static String STANDARD_PRICEBOOK_ID = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1].Id;
+    public final static String STANDARD_PRICEBOOK_ID = Test.isRunningTest() ? Test.getStandardPricebookId() : [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1].Id;
 }
